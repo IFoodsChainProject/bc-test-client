@@ -84,6 +84,7 @@
   "MT_AMOUNT_TO_SEND": "发送数量",
   "MT_FROM_ADDRESS": "我的地址",
   "BTN_TRANSFER_TRANSACTION": "发送交易",
+  "BTN_SEND_RCD_TRANSACTION": "发送记录交易",
   "BTN_GET_TRANSFER_TRANSACTION": "获取 转账 交易数据",
   "MT_ASSET_NAME": "资产名称",
   "MT_ASSET_AMOUNT": "资产总量",

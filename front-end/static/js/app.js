@@ -50,6 +50,7 @@ app.directive('onReadFile',
               res = db.exec("SELECT * FROM Account");
               var publicKeyHash = [];
               var privateKeyEncrypted = [];
+              //console.log(res);
               for (i = 0; i < res[0].values.length; i++) {
                 for (j = 0; j < res[0].values[i].length; j++) {
                   if (j == 0) {
@@ -61,6 +62,7 @@ app.directive('onReadFile',
                 }
               }
 
+              //console.log(passwordHash, iv, masterKey, publicKeyHash, privateKeyEncrypted);
               var wallet = new Wallet(passwordHash, iv, masterKey, publicKeyHash, privateKeyEncrypted);
 
               scope.$apply(function() {
@@ -80,7 +82,7 @@ app.directive('onReadFile',
 app.controller('ModalInstanceCtrl',
   function($scope, $modalInstance, items) {
     $scope.txModify = false;
-
+    console.log(items);
     if ($scope.txType == '128') {
       $scope.FromAddress = Wallet.toAddress(hexstring2ab(items.fromAddress));
       $scope.ToAddress = Wallet.toAddress(items.tx.outputs[0].scripthash);
@@ -118,28 +120,10 @@ app.controller('ModalInstanceCtrl',
           $scope.txModify = true;
         }
       }
-    } else if ($scope.txType == '2') {
-      $scope.ClaimAddress = Wallet.toAddress(hexstring2ab(items.claimAddress));
-
-      var valueStr = ab2hexstring(reverseArray(items.tx.outputs[0].value));
-      $scope.Value = parseInt(valueStr, 16);
-      $scope.AssetID = ab2hexstring(reverseArray(items.tx.outputs[0].assetid));
-      $scope.AssetName = "小蚁币";
-
-      // Amount Verify failed.
-      if (items.amount != $scope.Value) {
-        console.log("Amount verify failed.");
-        $scope.txModify = true;
-      }
-
-      // ClaimAddress Verify failed.
-      if (Wallet.toAddress(items.tx.outputs[0].scripthash) != $scope.ClaimAddress) {
-        console.log("ClaimAddress verify failed.");
-        $scope.txModify = true;
-      }
     }
 
     // ok click
+    // 确认签名并发送交易
     $scope.ok = function() {
       if (!$scope.txModify) {
         if ($scope.walletType == 'externalsignature') {
@@ -186,33 +170,8 @@ app.controller("SignatureDataCtrl",
       }
     }
   });
-/*
-app.controller("hashCalcCtrl", function($scope,$sce) {
-	$scope.hashRawData = "";
-	$scope.hashedData = "";
 
-	$scope.hashAlgo  = "sha256";
-	$scope.hashAlgos = [
-		{name:'sha256',algo:'sha256'},
-		{name:'sm3',algo:'sm3'},
-		{name:'md5',algo:'md5'},
-    ];
-
-	$scope.notifier = Notifier;
-	$scope.notifier.sce = $sce;
-    $scope.notifier.scope = $scope;
-
-	$scope.hashCalc = function() {
-		if ( $scope.hashAlgo == 'sha256' ) {
-			$scope.hashedData = Wallet.Sha256($scope.hashRawData);
-		} else if ( $scope.hashAlgo == 'sm3' ) {
-			$scope.hashedData = Wallet.SM3($scope.hashRawData);
-		} else if ( $scope.hashAlgo == 'md5' ) {
-			$scope.hashedData = Wallet.MD5($scope.hashRawData);
-		}
-	}
-});
-*/
+//貌似没啥用了
 app.controller("ToolsCtrl",
   function($scope, $sce) {
     $scope.wif = "";
@@ -723,29 +682,21 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
     });
   };
 
-  // modal
+  //转账交易打开模态对话框
   $scope.openModal = function () {
     var txData;
     var tx;
-
     if ($scope.txType == '128') {
       if ($scope.walletType == 'externalsignature') {
-        txData = $scope.txUnsignedData;
+        txData = $scope.txUnsignedData;                 //也许是要用冷钱包签名的未签名交易数据
       } else {
-        txData = $scope.transferTransactionUnsigned();
+        txData = $scope.transferTransactionUnsigned();  //创建未签名交易数据
       }
       if (txData == false) return;
 
+      console.log("txData unsigned created : ", txData);
       tx = $scope.getTransferTxData(txData);
-    } else if ($scope.txType == '2') {
-      if ($scope.walletType == 'externalsignature') {
-        txData = $scope.txUnsignedData;
-      } else {
-        txData = $scope.claimTransactionUnsigned();
-      }
-      if (txData == false) return;
-
-      tx = $scope.getClaimTxData(txData);
+      console.log("analysis from txData unsigned : ", tx);
     } else {
       return;
     }
@@ -766,25 +717,22 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
               'amount': $scope.Transaction.Amount,
               'fromAddress': $scope.accounts[$scope.accountSelectIndex].programHash
             }
-          } else if ($scope.txType == '2') {
-            // claim transaction
-            return {
-              'txData': txData,
-              'tx': tx,
-              'amount': $scope.claims['amount'],
-              'claimAddress': $scope.accounts[$scope.accountSelectIndex].programHash
-            }
           }
         }
       }
     });
     modalInstance.opened.then(function () { // 模态窗口打开之后执行的函数
-    });
+                              });
     modalInstance.result.then(function (result) {
-      },
-      function (reason) {
-      });
+                              },
+                              function (reason) {
+                              });
   };
+
+    $scope.doSendRecordTx = function() {
+        var rcdData = (new Date).toString();
+        $scope.SignRcdTxAndSend(rcdData);
+    }
 
   // modal
   $scope.timeoutView = function () {
@@ -1117,6 +1065,7 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
   };
 
   $scope.showContent = function ($wallet) {
+    console.log("after load db file, showContent:",$scope.wallet, $wallet);
     $scope.wallet = $wallet;
     $scope.requirePass = true;
 
@@ -1214,6 +1163,8 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
         }
 
       } else if ($scope.walletType == "fileupload") {
+        console.log("wallet to be decrypted : ", $scope.wallet);
+        console.log("wallet password : ", $scope.filePassword);
         let ret = Wallet.decryptWallet($scope.wallet, $scope.filePassword);
         if (ret == -1) {
           $scope.notifier.danger($translate.instant('NOTIFIER_PASSWORD_VERIFY_FAILED'));
@@ -1222,6 +1173,7 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
         } else {
           $scope.notifier.info($translate.instant('NOTIFIER_SUCCESS_DECRYPT_THE_WALLET'));
           $scope.accounts = ret;
+          console.log("wallet has been decrypted,and the account is : ", $scope.accounts);
 
           $scope.settings = [
             // {name: "HELP"},
@@ -1240,7 +1192,7 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
           $scope.getUnspent($scope.accounts[0].address);
 
           // Get HighChart data and transaction record.
-          Wallet.AjaxGet($http, $scope.apiUrl.high_chart_data, $scope.getHighChartData, $scope.catchProblem_ignore);
+          // Wallet.AjaxGet($http, $scope.apiUrl.high_chart_data, $scope.getHighChartData, $scope.catchProblem_ignore);
           // Wallet.AjaxGet($http,
           //   $scope.apiUrl.transaction_record + $scope.accounts[$scope.accountSelectIndex].address,
           //   $scope.getTransactionRecord, $scope.catchProblem);
@@ -1291,7 +1243,9 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
     // Wallet.GetNodeHeight($http, host, $scope.getNodeHeight_Callback, $scope.connectedNodeErr);
   };
   $scope.GetUnspent_Callback = function (res) {
+      //console.log("GetUnspent_Callback : ", res);
 	  $scope.coins = Wallet.analyzeCoins(res, $scope.nodeHeight);
+	  //console.log($scope.coins);
 
 	  if ($scope.coins.length == 0) {
 		  $scope.showNoAsset = true;
@@ -1306,6 +1260,7 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
 		  $scope.showOnlyOneAsset = false;
 		  $scope.showMoreAssetButton = true;
 	  }
+	  //console.log($scope.coins);
 
 	  if ($scope.coins.length > 0) {
 		  if ($scope.coins[0].balanceLockViewFormat === 0) {
@@ -1324,6 +1279,7 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
   };
 
   $scope.getNodeHeight_Callback = function (res) {
+    console.log("getNodeHeight result : ", res);
     if (res.status == 200) {
       if (res.data.Result > 0) {
         $scope.nodeHeight = res.data.Result;
@@ -1380,12 +1336,32 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
 
   };
 
+  $scope.sendRcdTransactionData = function ($rcdTxData) {
+    var host = $scope.hostInfo[$scope.hostSelectIndex];
+
+    Wallet.SendRcdTransactionData($http, $rcdTxData, host, (function (res) {
+      if (res.status == 200) {
+        //var txhash = ab2hexstring(reverseArray(hexstring2ab(Wallet.GetTxHash($rcdTxData))));
+        var errCode = res.data.Error;
+        if(errCode == 0) {
+          console.log("sendRcdTx success! tx hash is " + res.data.Result);
+        } else {
+          console.log("sendRcdTx failed! error code is " + errCode);
+        }        
+      }
+    }), (function (err) {
+      $scope.catchProblem(err);
+      return null;
+    }));
+
+  };
+
   $scope.MakeTxAndSend = function ($txUnsignedData) {
     if ($txUnsignedData.length > 0 && $scope.txSignatureData.length == 128) {
       var publicKeyEncoded = $scope.accounts[$scope.accountSelectIndex].publickeyEncoded;
       var txRawData = Wallet.AddContract($txUnsignedData, $scope.txSignatureData, publicKeyEncoded);
 
-      $scope.sendTransactionData(txRawData);
+      $scope.sendTransactionData(txRawData); //may be signed with cold wallet
     } else {
       $scope.notifier.warning($translate.instant('NOTIFIER_INPUT_DATA_CHECK_FAILED'));
     }
@@ -1404,7 +1380,7 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
     var sign = Wallet.signatureData(txData, privateKey);
     var txRawData = Wallet.AddContract(txData, sign, publicKeyEncoded);
 
-    $scope.sendTransactionData(txRawData);
+    $scope.sendTransactionData(txRawData); //state update tx??
   };
 
   $scope.issueTransaction = function () {
@@ -1425,7 +1401,7 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
     var sign = Wallet.signatureData(txData, privateKey);
     var txRawData = Wallet.AddContract(txData, sign, publicKeyEncoded);
 
-    $scope.sendTransactionData(txRawData, 1);
+    $scope.sendTransactionData(txRawData, 1);//issue tx
   };
 
   $scope.issueTransactionUnsigned = function () {
@@ -1496,7 +1472,7 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
     var sign = Wallet.signatureData(txData, privateKey);
     var txRawData = Wallet.AddContract(txData, sign, publicKeyEncoded);
 
-    $scope.sendTransactionData(txRawData, 0);
+    $scope.sendTransactionData(txRawData, 0); //register tx
 
   };
 
@@ -1519,6 +1495,10 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
     }
 
     var publicKeyEncoded = $scope.accounts[$scope.accountSelectIndex].publickeyEncoded;
+    console.log("param to create tx data [coin type]:", $scope.coins, $scope.coinSelectIndex);
+    console.log("param to create tx data [publicKeyEncode]", publicKeyEncoded);
+    console.log("param to create tx data [toAddress]", $scope.Transaction.ToAddress);
+    console.log("param to create tx data [Ammout]", $scope.Transaction.Amount);
     var txData = Wallet.makeTransferTransaction($scope.coins[$scope.coinSelectIndex], publicKeyEncoded, $scope.Transaction.ToAddress, $scope.Transaction.Amount);
     if (txData == -1) {
       $scope.notifier.danger($translate.instant('NOTIFIER_ADDRESS_VERIFY_FAILED'));
@@ -1558,7 +1538,7 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
     var sign = Wallet.signatureData(txData, privateKey);
     var txRawData = Wallet.AddContract(txData, sign, publicKeyEncoded);
 
-    $scope.sendTransactionData(txRawData);
+    $scope.sendTransactionData(txRawData);//??
   };
 
   $scope.claimTransactionUnsigned = function () {
@@ -1582,7 +1562,7 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
     var sign = Wallet.signatureData(txData, privateKey);
     var txRawData = Wallet.AddContract(txData, sign, publicKeyEncoded);
 
-    $scope.sendTransactionData(txRawData);
+    $scope.sendTransactionData(txRawData); //cliaim tx??
 
     $scope.claims = {};
     $scope.claims['amount'] = 0;
@@ -1594,9 +1574,26 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
     var sign = Wallet.signatureData($txData, privateKey);
     var txRawData = Wallet.AddContract($txData, sign, publicKeyEncoded);
 
+    console.log("send transfer data signed tx : ", txRawData);
     $scope.sendTransactionData(txRawData);
   };
 
+  $scope.SignRcdTxAndSend = function($rcdData) {
+      var fromAddress = $scope.accounts[$scope.accountSelectIndex].address;
+      var privateKey = $scope.accounts[$scope.accountSelectIndex].privatekey;
+      var signOfrcdData = Wallet.signatureData($rcdData, privateKey);
+
+      console.log("send record tx with signature from address...", $rcdData, privateKey, signOfrcdData, fromAddress);
+
+      //应该还是要序列化，否则json的字符要多占空间，区块链存不下
+      //construct the record transaction data
+      var jsonObj = {data:$rcdData, fromAddress:fromAddress, signature:signOfrcdData};
+      var jsonStr = JSON.stringify(jsonObj);
+
+      $scope.sendRcdTransactionData(jsonStr);
+  };
+
+  //重新解析构造出的交易信息
   $scope.getTransferTxData = function ($txData) {
     var ba = new Buffer($txData, "hex");
     var tx = new Transaction();

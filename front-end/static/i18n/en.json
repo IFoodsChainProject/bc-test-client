@@ -86,6 +86,7 @@
   "MT_PLEASE_WAITING": "Please waiting for",
   "MT_SECOND": "s",
   "BTN_TRANSFER_TRANSACTION": "Send",
+  "BTN_SEND_RCD_TRANSACTION": "Send RcdTx",
   "BTN_GET_TRANSFER_TRANSACTION": "Get Transfer Notice",
   "MT_ASSET_NAME": "Asset Name",
   "MT_ASSET_AMOUNT": "Asset Amount",

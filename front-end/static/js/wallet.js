@@ -846,6 +846,7 @@ Wallet.VerifyPublicKeyEncoded = function($publicKeyEncoded) {
  * @returns {*} : TxUnsignedData
  */
 Wallet.makeTransferTransaction = function($coin, $publicKeyEncoded, $toAddress, $Amount) {
+    //构造交易
   var ProgramHash = base58.decode($toAddress);
   var ProgramHexString = CryptoJS.enc.Hex.parse(ab2hexstring(ProgramHash.slice(0, 21)));
   var ProgramSha256 = CryptoJS.SHA256(ProgramHexString);
@@ -881,7 +882,7 @@ Wallet.makeTransferTransaction = function($coin, $publicKeyEncoded, $toAddress, 
   // 自定义属性,Attributes
   var transactionAttrNum = "01";
   var transactionAttrUsage = "00";
-  var transactionAttrData = ab2hexstring(stringToBytes(parseInt(WalletMath.mul(99999999, Math.random()))));
+  var transactionAttrData = ab2hexstring(stringToBytes(parseInt(WalletMath.mul(99999999, Math.random())))); //随机数？
   var transactionAttrDataLen = prefixInteger(Number(transactionAttrData.length / 2).toString(16), 2);
   var referenceTransactionData = ab2hexstring(inputData.data);
 
@@ -1380,6 +1381,21 @@ Wallet.SendTransactionData = function($http, $txData, $host, $callback, $callbac
     }
   }).then($callback).catch($callbackDev);
 };
+
+/*
+ 发送普通数据到区块链
+*/
+Wallet.SendRcdTransactionData = function($http, $rcdTxData, $host, $callback, $callbackDev) {
+
+  $http({
+    method: 'POST',
+    url: $host.restapi_host + ':' + $host.restapi_port + '/api/v1/custom/transaction/record',
+    data: '{"Action":"sendrecord", "Version":"1.0.0", "Type":"","RecordData":{"content":'+ $rcdTxData + '}}',
+    headers: {
+      "Content-Type": "application/json"
+    }
+  }).then($callback).catch($callbackDev);
+}
 
 Wallet.AjaxGet = function ($http, url, $callback, $catch) {
   $http({method: 'GET', url: url}).then($callback).catch($catch);
