@@ -316,6 +316,12 @@
                         <div class="form-group">
                             <br />
                             <button class="btn btn-info btn-block" ng-click="openModal()" ng-disabled="!Transaction.able" translate="BTN_TRANSFER_TRANSACTION">Transfer Transaction</button>
+                        </div>
+                        <div>
+                            <br />
+                            <label class="control-label" translate="MT_CONTENT_TO_SEND">Content to Send</label>
+                            <input class="form-control" ng-model="Transaction.RcdTxContent" name="RcdTxContent" value="" placeholder="{{ 'RCDTX_CONTENT' | translate }}" aria-label="amount" type="text" />
+                            <br />
                             <button class="btn btn-info btn-block" ng-click="doSendRecordTx()" ng-disabled="!Transaction.able" translate="BTN_SEND_RCD_TRANSACTION">Transfer Transaction</button>
                         </div>
                         <div class="form-group" ng-show="waitingSecond">

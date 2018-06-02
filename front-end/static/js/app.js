@@ -730,7 +730,13 @@ app.controller("WalletCtrl", function($scope, $translate, $http, $sce, $interval
   };
 
     $scope.doSendRecordTx = function() {
-        var rcdData = (new Date).toString();
+        //var rcdData = (new Date).toString();
+        var rcdData = $scope.Transaction.RcdTxContent;
+        if(rcdData == null || rcdData == undefined || rcdData == "") {
+            $scope.notifier.warning($translate.instant('NOTIFIER_RCDTX_CONTENT_CANNOT_EMPTY'));
+            return;
+        }
+        console.log(rcdData);
         $scope.SignRcdTxAndSend(rcdData);
     }
 
